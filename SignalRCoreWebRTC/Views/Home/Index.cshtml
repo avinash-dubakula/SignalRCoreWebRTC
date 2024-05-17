@@ -37,9 +37,16 @@
             <h4>You</h4>
             <video class="video mine cool-background" autoplay="autoplay"></video>
             </div>*@
+            <div>
+                <button id="muteAudioButton">Mute Audio</button>
+                <button id="muteVideoButton">Mute Video</button>
+            </div>
             <div class="span6">
                 <h4>Partner</h4>
-                <audio class="audio partner" autoplay="" controls=""></audio>
+                @* <audio id="remoteAudio" class="audio partner" autoplay="" controls=""></audio> *@
+                <video width="200px" id="currentVideo" autoplay></video>
+                <video width="400px" id="remoteVideo" autoplay controls></video>
+                
                 @*<video class="video partner cool-background" autoplay="autoplay"></video>*@
             </div>
         </div>

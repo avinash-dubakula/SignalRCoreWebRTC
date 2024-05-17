@@ -12,6 +12,21 @@ var peerConnectionConfig = { "iceServers": [{ "url": "stun:stun.l.google.com:193
 //        { "urls": "turn:turn-testdrive.cloudapp.net:3478?transport=udp", "username": "redmond", "credential": "redmond123" }
 //    ]
 //};
+// Assuming you have a reference to your localStream
+let isAudioMuted = false;
+let isVideoMuted = false;
+
+document.getElementById('muteAudioButton').addEventListener('click', () => {
+    isAudioMuted = !isAudioMuted;
+    localStream.getAudioTracks().forEach(track => track.enabled = !isAudioMuted);
+    document.getElementById('muteAudioButton').innerText = isAudioMuted ? 'Unmute Audio' : 'Mute Audio';
+});
+
+document.getElementById('muteVideoButton').addEventListener('click', () => {
+    isVideoMuted = !isVideoMuted;
+    localStream.getVideoTracks().forEach(track => track.enabled = !isVideoMuted);
+    document.getElementById('muteVideoButton').innerText = isVideoMuted ? 'Unmute Video' : 'Mute Video';
+});
 
 $(document).ready(function () {
     initializeSignalR();
@@ -55,18 +70,18 @@ $(document).ready(function () {
     });
 });
 
-var webrtcConstraints = { audio: true, video: false };
+var webrtcConstraints = { audio: true, video: true };
 
 var  connections = {}, localStream = null;
 
-const attachMediaStream = (stream) => {
-    console.log("OnPage: called attachMediaStream");
-    var partnerAudio = document.querySelector('.audio.partner');
-    if (partnerAudio.srcObject !== stream) {
-        partnerAudio.srcObject = stream;
-        console.log("OnPage: Attached remote stream");
+const attachMediaStream = (stream, videoElementId) => {
+    const videoElement = document.getElementById(videoElementId);
+    if (videoElement.srcObject !== stream) {
+        videoElement.srcObject = stream;
+        console.log("Stream attached to", videoElementId);
     }
 };
+
 
 
 const receivedCandidateSignal = (connection, partnerClientId, candidate) => {
@@ -205,7 +220,12 @@ const initiateOffer = (partnerClientId, stream) => {
 const callbackUserMediaSuccess = (stream) => {
     console.log("WebRTC: got media stream");
     localStream = stream;
-
+    // Create a new MediaStream for just the video track
+    const videoStream = new MediaStream();
+    stream.getVideoTracks().forEach(track => videoStream.addTrack(track));
+    attachMediaStream(videoStream, 'currentVideo')
+    var tempStream = new MediaStream();
+    attachMediaStream(tempStream, 'remoteVideo')
     const audioTracks = localStream.getAudioTracks();
     if (audioTracks.length > 0) {
         console.log(`Using Audio device: ${audioTracks[0].label}`);
@@ -226,7 +246,23 @@ const callbackRemoveStream = (connection, evt) => {
 
 const callbackAddTrack = (connection, evt) => {
     console.log('WebRTC: called callbackAddTrack');
-    attachMediaStream(evt.streams[0]);  // Assuming the first stream contains the relevant media
+    evt.streams.forEach((stream, index) => {
+        console.log(`Stream ${index}:`, stream);
+        stream.getTracks().forEach((track) => {
+            console.log(`  Track kind: ${track.kind}, Track id: ${track.id}`);
+        });
+    });
+    // Attach the streams to appropriate elements
+    //evt.streams.forEach((stream) => {
+    //    stream.getTracks().forEach((track) => {
+    //        if (track.kind === 'video') {
+    //            attachMediaStream(stream, 'remoteVideo');
+    //        } else if (track.kind === 'audio') {
+    //            attachMediaStream(stream, 'remoteAudio');
+    //        }
+    //    });
+    //});
+    attachMediaStream(evt.streams[0], 'remoteVideo');  // Assuming the first stream contains the relevant media
 }
 
 const callbackNegotiationNeeded = (connection, evt) => {
